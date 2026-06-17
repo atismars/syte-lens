@@ -18,6 +18,12 @@
       :focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; border-radius: 4px; }
       /* Hover on a section header → 15% darker than the #DFE9F8 background */
       .syte-section-toggle:hover { background: #BEC6D3 !important; }
+      /* "Analyzing" heartbeat: a bright pulse sweeps along a faint EKG line so
+         the panel reads as working, not frozen. */
+      @keyframes syte-ekg { from { stroke-dashoffset: 560; } to { stroke-dashoffset: 0; } }
+      @keyframes syte-pulse { 0%,100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.16); opacity: 1; } }
+      .syte-ekg-line { stroke-dasharray: 38 560; animation: syte-ekg 1.5s linear infinite; }
+      .syte-pulse { animation: syte-pulse 1.2s ease-in-out infinite; transform-origin: center; }
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.45); border-radius: 2px; }

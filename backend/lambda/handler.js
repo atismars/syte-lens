@@ -128,9 +128,13 @@ export async function handler(event) {
   // 2-4. Gather signals → analyze → assemble verdict (cache miss or forced refresh).
   let verdict;
   try {
-    const signals = await gatherSignals(domain, page);
-    // Domain-level Safe Browsing check (we never receive the full URL/path).
-    const safeBrowsing = await checkSafeBrowsing(`https://${domain}`);
+    // WHOIS and Safe Browsing are independent network calls — run them in
+    // parallel so the slower of the two (not their sum) gates the AI step.
+    // (We never receive the full URL/path; the SB check is domain-level.)
+    const [signals, safeBrowsing] = await Promise.all([
+      gatherSignals(domain, page),
+      checkSafeBrowsing(`https://${domain}`),
+    ]);
     const impersonation = detectImpersonation(domain);
     const knownBrand = isKnownBrandDomain(domain); // verified-legitimate official domain
     const ai = await analyze(domain, { ...signals, safeBrowsing, impersonation }, page);

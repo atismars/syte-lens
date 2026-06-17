@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" rx="7" fill="#0050FF"/>
+  <g transform="translate(4.5 4) scale(0.96)">
+    <!-- shield -->
+    <path d="M12 2 L4 5 V11 C4 16 7.5 20.6 12 22 C16.5 20.6 20 16 20 11 V5 Z"
+          fill="#FFFFFF"/>
+    <!-- lens -->
+    <circle cx="10.6" cy="10.4" r="3.1" fill="none" stroke="#0050FF" stroke-width="1.9"/>
+    <line x1="12.9" y1="12.7" x2="15.4" y2="15.2" stroke="#0050FF" stroke-width="2.1" stroke-linecap="round"/>
+  </g>
+</svg>

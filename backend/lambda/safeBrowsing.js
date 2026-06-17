@@ -19,10 +19,13 @@ const THREAT_TYPES = [
  */
 export async function checkSafeBrowsing(url) {
   if (!SB_KEY || !url) return { checked: false, threats: [] };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000); // don't let a slow lookup eat the budget
   try {
     const res = await fetch(`${SB_ENDPOINT}?key=${SB_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: ctrl.signal,
       body: JSON.stringify({
         client: { clientId: "sytelens", clientVersion: "0.1.0" },
         threatInfo: {
@@ -34,14 +37,16 @@ export async function checkSafeBrowsing(url) {
       }),
     });
     if (!res.ok) {
-      console.error("[safeBrowsing] HTTP", res.status);
+      console.warn("[safeBrowsing] HTTP", res.status);
       return { checked: false, threats: [] };
     }
     const data = await res.json();
     const threats = [...new Set((data.matches || []).map((m) => m.threatType))];
     return { checked: true, threats };
   } catch (err) {
-    console.error("[safeBrowsing] lookup failed:", err);
+    console.warn("[safeBrowsing] lookup failed/timed out:", String(err));
     return { checked: false, threats: [] };
+  } finally {
+    clearTimeout(timer);
   }
 }

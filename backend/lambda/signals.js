@@ -4,6 +4,23 @@
 const WHOIS_API_KEY = process.env.WHOIS_API_KEY;
 const WHOIS_ENDPOINT = "https://api.apilayer.com/whois/query"; // GET ?domain= (full record)
 
+// Negative cache (module scope → persists across warm invocations). When WHOIS
+// fails or times out for a domain, remember it so we don't pay the timeout again
+// on every cache miss for that domain for a while (e.g. a slow .ai domain being
+// analyzed by several users before the verdict is cached).
+const whoisFailures = new Map(); // domain -> epoch ms of last failure
+const WHOIS_FAIL_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+function whoisRecentlyFailed(domain) {
+  const at = whoisFailures.get(domain);
+  if (!at) return false;
+  if (Date.now() - at > WHOIS_FAIL_TTL) {
+    whoisFailures.delete(domain);
+    return false;
+  }
+  return true;
+}
+
 // Known ad / attribution tracking parameters and what they signify.
 const TRACKING_PARAMS = {
   utm_source: "Campaign source",
@@ -83,18 +100,29 @@ export async function fetchWhois(domain) {
     console.warn("[signals] WHOIS_API_KEY not set — skipping WHOIS lookup");
     return empty;
   }
+  // Skip the call entirely if this domain's WHOIS recently failed/timed out.
+  if (whoisRecentlyFailed(domain)) return empty;
+
+  // Hard timeout: apilayer's WHOIS is slow for some TLDs (notably .ai), and a
+  // hung lookup is the main cause of the whole request exceeding API Gateway's
+  // 29s limit (a 504). Cap it and proceed without WHOIS if it's too slow.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
     const res = await fetch(`${WHOIS_ENDPOINT}?domain=${encodeURIComponent(domain)}`, {
       headers: { apikey: WHOIS_API_KEY },
+      signal: ctrl.signal,
     });
     if (!res.ok) {
-      console.error("[signals] WHOIS HTTP", res.status, "for", domain);
+      console.warn("[signals] WHOIS HTTP", res.status, "for", domain);
+      whoisFailures.set(domain, Date.now());
       return empty;
     }
     const data = await res.json();
     const r = data?.result || data || {};
     const created = firstDate(r.creation_date || r.created_date);
     const updated = firstDate(r.updated_date || r.updated);
+    whoisFailures.delete(domain); // success — clear any prior failure mark
     return {
       domainAge: ageFromDate(created),
       registrar: r.registrar || null,
@@ -102,8 +130,11 @@ export async function fetchWhois(domain) {
       recentlyTransferred: isRecentTransfer(created, updated),
     };
   } catch (err) {
-    console.error("[signals] WHOIS fetch failed for", domain, err);
+    console.warn("[signals] WHOIS failed/timed out for", domain, String(err));
+    whoisFailures.set(domain, Date.now());
     return empty;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

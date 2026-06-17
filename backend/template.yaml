@@ -35,7 +35,8 @@ Globals:
   Function:
     Runtime: nodejs24.x
     Timeout: 30
-    MemorySize: 256
+    # 512 MB ≈ 0.3 vCPU (vs ~0.15 at 256): faster cold starts and JSON work.
+    MemorySize: 512
 
 Resources:
   # --- DynamoDB verdict cache (PK: domain, 30-day TTL on `ttl`) ---

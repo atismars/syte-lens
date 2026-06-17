@@ -177,8 +177,11 @@ const clampInt = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
 export async function analyze(domain, signals, page = {}) {
   const resp = await client.messages.create({
     model: MODEL,
-    max_tokens: 1600,
-    system: SYSTEM_PROMPT,
+    max_tokens: 1200, // enough for the full schema; trimmed from 1600 to cap worst-case output time
+
+    // The system prompt is large (~1.5k tokens) and identical on every call —
+    // cache it so repeat requests skip re-processing it (cheaper, slightly faster).
+    system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
     thinking: { type: "disabled" },
     output_config: {
       effort: "low",

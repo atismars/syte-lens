@@ -94,6 +94,7 @@ async function setSessionVerdict(domain, verdict) {
 const COLOR_FOR_VERDICT = { SAFE: "green", CAUTION: "yellow", "HIGH RISK": "red" };
 
 function applyIcon(tabId, verdict) {
+  if (typeof tabId !== "number") return;
   const color = COLOR_FOR_VERDICT[verdict] || "grey"; // grey = analyzing / unknown
   const path = {
     16: `icons/${color}-16.png`,
@@ -101,7 +102,14 @@ function applyIcon(tabId, verdict) {
     48: `icons/${color}-48.png`,
     128: `icons/${color}-128.png`,
   };
-  chrome.action.setIcon({ tabId, path }).catch(() => {});
+  try {
+    // Callback form + reading lastError: the tab can be closed or navigated
+    // away while a slow analysis is in flight, and setIcon then reports
+    // "No tab with id". Reading lastError marks it handled (no console spam).
+    chrome.action.setIcon({ tabId, path }, () => void chrome.runtime.lastError);
+  } catch {
+    /* tab gone */
+  }
 }
 
 // ── analysis ────────────────────────────────────────────────────────
@@ -117,6 +125,24 @@ async function getPageSignals(tabId) {
 
 function broadcast(message) {
   chrome.runtime.sendMessage(message).catch(() => {}); // no listener (panel closed) is fine
+}
+
+// POST to the backend with a hard timeout so a hung/slow request fails
+// deterministically (rather than leaving the icon grey forever). The API
+// Gateway itself returns a 504 at ~29s; we abort a touch later as a backstop.
+async function postBackend(body, timeoutMs = 30000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(CONFIG.endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": CONFIG.apiKey },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function analyzeDomain(tabId, domain, { force = false } = {}) {
@@ -135,18 +161,17 @@ async function analyzeDomain(tabId, domain, { force = false } = {}) {
     const trackerKeys = extractTrackerKeys(tabUrl);
     const page = await getPageSignals(tabId); // { pageTitle, metaDescription, contentSample }
 
-    const res = await fetch(CONFIG.endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": CONFIG.apiKey },
-      body: JSON.stringify({ domain, https, trackerKeys, ...page, forceRefresh: force }),
-    });
+    const res = await postBackend({ domain, https, trackerKeys, ...page, forceRefresh: force });
     if (!res.ok) throw new Error(`backend ${res.status}`);
     const verdict = await res.json();
     await setSessionVerdict(domain, verdict);
     applyIcon(tabId, verdict.verdict);
     broadcast({ type: "SYTELENS_VERDICT", status: "ready", tabId, domain, verdict });
   } catch (err) {
-    console.error("[Sytelens] analysis failed for", domain, err);
+    // Backend latency/timeouts (e.g. a 504) and aborts are expected and
+    // recoverable, so log as a warning rather than a hard error. The panel
+    // still gets an error status to show.
+    console.warn("[Sytelens] analysis failed for", domain, String(err));
     applyIcon(tabId, null);
     broadcast({ type: "SYTELENS_VERDICT", status: "error", tabId, domain, error: String(err) });
   } finally {
@@ -187,11 +212,8 @@ const isStale = (v) => !v?.analyzedAt || Date.now() - new Date(v.analyzedAt).get
 async function cacheCheck(domain) {
   if (!configured()) return null;
   try {
-    const res = await fetch(CONFIG.endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": CONFIG.apiKey },
-      body: JSON.stringify({ domain, cacheOnly: true }),
-    });
+    // Cache-only lookup is a quick DynamoDB read; keep its timeout short.
+    const res = await postBackend({ domain, cacheOnly: true }, 10000);
     if (!res.ok) return null;
     const data = await res.json();
     return data && data.found ? data : null;

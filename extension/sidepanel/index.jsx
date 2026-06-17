@@ -9,6 +9,7 @@ import { T, ThemeContext, useTheme, verdictForScore } from "./theme.js";
 import ScoreRing from "./components/ScoreRing.jsx";
 import Section from "./components/Section.jsx";
 import ToolbarBadge from "./components/ToolbarBadge.jsx";
+import Heartbeat from "./components/Heartbeat.jsx";
 import Icon from "./components/Icon.jsx";
 
 // ── header (shared by the panel and status screens) ─────────────────
@@ -25,7 +26,6 @@ function Header({ state, onClose }) {
           <span style={{ color: T.text }}>SYTE</span>
           <span style={{ color: T.logo }}>.LENS</span>
         </span>
-        <span style={{ fontSize: 10, color: T.muted }}>by ATIS MARS</span>
       </div>
       <button onClick={onClose} title="Close" aria-label="Close panel"
         style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, padding: 4, lineHeight: 0, display: "flex" }}>
@@ -363,10 +363,14 @@ function SidePanel({ data, onClose }) {
             style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 10, color: T.blue, display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Icon name="lock" size={11} /> Privacy &amp; settings
           </button>
-          <a href="https://github.com/atismars/syte-lens" target="_blank" rel="noreferrer" style={{ fontSize: 10, color: T.blue, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="star" size={11} /> Open source on GitHub</a>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <a href="https://github.com/atismars/syte-lens" target="_blank" rel="noreferrer" style={{ fontSize: 10, color: T.blue, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="star" size={11} /> Open source on GitHub</a>
+            <a href="https://sytelens.com" target="_blank" rel="noreferrer" style={{ fontSize: 10, color: T.blue, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="home" size={11} /> Syte.Lens</a>
+          </div>
         </div>
         <span style={{ fontSize: 10, color: T.muted }}>
-          Incorrect verdict? <span style={{ color: T.blue, cursor: "pointer" }}>Report it</span>
+          Incorrect verdict?{" "}
+          <a href={buildReportUrl(data)} target="_blank" rel="noreferrer" style={{ color: T.blue, textDecoration: "none" }}>Report it</a>
         </span>
       </div>
     </div>
@@ -376,13 +380,28 @@ function SidePanel({ data, onClose }) {
 // ── non-verdict states (analyzing / error / no site / unconfigured) ──
 function StatusView({ state, title, detail, onClose }) {
   const T = useTheme();
+  const analyzing = state === "analyzing";
   return (
     <div style={{ width: "100%", height: "100%", background: T.surface, display: "flex", flexDirection: "column", fontFamily: T.sans }}>
       <Header state={state} onClose={onClose} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 24, textAlign: "center" }}>
-        <ToolbarBadge state={state === "analyzing" ? "loading" : "loading"} size={36} glyph={false} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: 24, textAlign: "center" }}>
+        {analyzing ? (
+          <>
+            <span className="syte-pulse" style={{ display: "flex" }}>
+              <ToolbarBadge state="loading" size={40} glyph={false} />
+            </span>
+            <Heartbeat width={200} />
+          </>
+        ) : (
+          <ToolbarBadge state="loading" size={36} glyph={false} />
+        )}
         <div style={{ fontFamily: T.heading, fontSize: 14, fontWeight: 700, color: T.text }}>{title}</div>
         {detail && <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.5, maxWidth: 260 }}>{detail}</div>}
+        {analyzing && (
+          <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.5, maxWidth: 240 }}>
+            Reading the page and checking trust signals. This usually takes a few seconds.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -437,6 +456,23 @@ const THREAT_LABELS = {
   POTENTIALLY_HARMFUL_APPLICATION: "Harmful app",
 };
 const humanizeThreats = (t) => (t || []).map((x) => THREAT_LABELS[x] || x).join(", ");
+
+// Build a prefilled GitHub "new issue" URL for an incorrect-verdict report.
+const REPO = "https://github.com/atismars/syte-lens";
+function buildReportUrl(data) {
+  const title = `Incorrect verdict: ${data.domain}`;
+  const body = [
+    `**Domain:** ${data.domain}`,
+    `**Verdict shown:** ${data.verdict} (score ${data.score}/100)`,
+    "",
+    "**What seems wrong, and what's the correct read?**",
+    "",
+    "",
+    "---",
+    "_Reported from the Syte.Lens side panel._",
+  ].join("\n");
+  return `${REPO}/issues/new?labels=${encodeURIComponent("verdict-report")}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+}
 
 function App() {
   const [result, setResult] = useState(null); // { status, domain?, verdict? }
