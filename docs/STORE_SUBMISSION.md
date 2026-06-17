@@ -54,9 +54,10 @@ kids safety, threat checks, domain signals), privacy stance, open source.
 - **Purpose:** App functionality (generating the trust/kids-safety rating).
 - **NOT collected:** full URLs, form input, credentials, personal identifiers,
   cross-site browsing-history profile. No data sold or used for ads.
-- **Privacy policy URL:** `https://sytelens.com/privacy.html` (generated at
-  [site/privacy.html](../site/privacy.html); keep it in sync with
-  [PRIVACY.md](../PRIVACY.md)). This is the same URL the extension's options page links to.
+- **Privacy policy URL:** `https://sytelens.com/privacy.html` — host a privacy page
+  at that URL before submitting (source policy: [PRIVACY.md](../PRIVACY.md)). This is
+  the same URL the extension's options page links to; it must be live and reachable
+  for the store review to pass.
 
 ## Assets needed before submit
 
