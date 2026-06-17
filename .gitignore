@@ -55,6 +55,11 @@ extension/config.js
 # Internal docs — kept local, not published in the repo
 docs/
 
+# Private / local-only: legal documents and generated brand/store assets
+*.pdf
+**/sytelens-logo/
+**/sytelens-store/
+
 # Chrome Web Store package
 extension/*.zip
 dist/

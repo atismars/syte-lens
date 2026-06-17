@@ -68,7 +68,9 @@ Resources:
           ThrottlingRateLimit: 10
           ThrottlingBurstLimit: 20
       Auth:
-        ApiKeyRequired: true
+        # API key is required on POST only (set per-method below), so the CORS
+        # preflight (OPTIONS) stays keyless and the browser can reach it once the
+        # extension drops broad host permissions and the fetch becomes CORS-subject.
         UsagePlan:
           CreateUsagePlan: PER_API
           Description: Sytelens default usage plan
@@ -99,6 +101,8 @@ Resources:
             RestApiId: !Ref SytelensApi
             Path: /analyze
             Method: post
+            Auth:
+              ApiKeyRequired: true
 
   # Account cost cap — alerts at 80% (forecast) and 100% (actual) of the monthly
   # limit. The dedicated Sytelens account runs only this app, so account spend

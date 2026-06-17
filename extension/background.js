@@ -46,16 +46,6 @@ export function getRootDomain(url) {
 
 const configured = () => Boolean(CONFIG.endpoint && CONFIG.apiKey);
 
-// Proactive ("auto-scan") is OFF by default — analysis runs only when the user
-// opens the side panel, unless they opt in via the options page.
-async function getAutoScan() {
-  try {
-    return (await chrome.storage.local.get("autoScan")).autoScan === true;
-  } catch {
-    return false;
-  }
-}
-
 // Known tracking-param names. We extract only the KEYS present in a URL (never
 // values, never the URL itself) so the backend can flag ad/funnel tracking.
 const TRACKER_PARAMS = new Set([
@@ -115,11 +105,50 @@ function applyIcon(tabId, verdict) {
 // ── analysis ────────────────────────────────────────────────────────
 const inFlight = new Set(); // domains currently being analyzed
 
+// Collect minimal page signals by injecting into the active tab. Needs the
+// activeTab grant (from the user clicking the toolbar icon), so page content is
+// read only for the tab the user explicitly analyzes. Self-contained on purpose:
+// executeScript serializes this function, so it cannot reference outer scope.
+function collectPageSignals() {
+  function detectDarkPatterns() {
+    const out = [];
+    const add = (type, label, evidence) => {
+      if (out.length < 8) out.push({ type, label, evidence: String(evidence).slice(0, 80) });
+    };
+    try {
+      const text = (document.body?.innerText || "").replace(/\s+/g, " ");
+      const urgency = text.match(/\b(limited[- ]time|act now|hurry|don'?t miss|last chance|offer ends|ends (soon|today|tonight)|today only|flash sale|while supplies last|expires? (soon|today))\b/i);
+      if (urgency) add("urgency", "Urgency language", urgency[0]);
+      const scarcity = text.match(/\b(only \d+ (left|remaining|in stock)|\d+ (people|others|shoppers) (viewing|watching|bought|are looking)|selling (fast|out)|low stock|almost (gone|sold out)|\d+ left at this price)\b/i);
+      if (scarcity) add("scarcity", "Fake scarcity / stock pressure", scarcity[0]);
+      const timer = text.match(/\b\d{1,2}:\d{2}(:\d{2})?\b/);
+      if (timer && (urgency || /count\s?down|timer|deal ends|sale ends/i.test(text))) add("timer", "Countdown timer", timer[0]);
+      const overlays = [...document.querySelectorAll('[role="dialog"], [class*="modal" i], [class*="popup" i], [class*="overlay" i], [id*="modal" i], [id*="popup" i]')].filter((el) => {
+        const s = getComputedStyle(el);
+        if (s.display === "none" || s.visibility === "hidden" || parseFloat(s.opacity) === 0) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 200 && r.height > 150 && (s.position === "fixed" || s.position === "absolute");
+      });
+      if (overlays.length > 0) add("popup", "Popup / modal overlay", `${overlays.length} overlay${overlays.length > 1 ? "s" : ""} on load`);
+    } catch {
+      /* never let detection break the page */
+    }
+    return out;
+  }
+  const metaDescription =
+    document.querySelector('meta[name="description"]')?.content ||
+    document.querySelector('meta[property="og:description"]')?.content ||
+    "";
+  const contentSample = (document.body?.innerText || "").replace(/\s+/g, " ").trim().slice(0, 500);
+  return { pageTitle: document.title || "", metaDescription, contentSample, darkPatterns: detectDarkPatterns() };
+}
+
 async function getPageSignals(tabId) {
   try {
-    return (await chrome.tabs.sendMessage(tabId, { type: "SYTELENS_GET_SIGNALS" })) || {};
+    const [injection] = await chrome.scripting.executeScript({ target: { tabId }, func: collectPageSignals });
+    return injection?.result || {};
   } catch {
-    return {}; // no content script (restricted page, not yet injected, etc.)
+    return {}; // no activeTab grant (tab not user-invoked) or a restricted page
   }
 }
 
@@ -179,21 +208,6 @@ async function analyzeDomain(tabId, domain, { force = false } = {}) {
   }
 }
 
-// Set the icon from cache, or kick off analysis (icon -> grey meanwhile).
-async function ensureVerdict(tabId, domain) {
-  if (!configured()) {
-    applyIcon(tabId, null);
-    return;
-  }
-  const cached = await getSessionVerdict(domain);
-  if (cached) {
-    applyIcon(tabId, cached.verdict);
-    return;
-  }
-  applyIcon(tabId, null); // grey = analyzing
-  await analyzeDomain(tabId, domain);
-}
-
 // "Show ratings for already-rated sites" — default ON. A cache-only lookup on
 // visit, never a full analysis.
 async function getKnownSiteCheck() {
@@ -242,9 +256,9 @@ async function passiveColor(tabId, domain) {
 // "complete" events and in-page (hash) navigation.
 const lastDomainByTab = new Map();
 
-// On each visit: auto-scan (opt-in) runs a full analysis; otherwise the default
-// "known-site check" colors the icon from cache only (no analysis). Both are
-// skippable via settings.
+// On each visit, the default "known-site check" colors the icon from the shared
+// cache only (a domain-only lookup, no page access, no analysis). A full analysis
+// runs only when the user clicks the toolbar icon. Skippable in settings.
 async function onVisit(tabId, url) {
   const domain = getRootDomain(url);
   if (!domain) {
@@ -255,9 +269,7 @@ async function onVisit(tabId, url) {
   if (lastDomainByTab.get(tabId) === domain) return;
   lastDomainByTab.set(tabId, domain);
 
-  if (await getAutoScan()) {
-    ensureVerdict(tabId, domain).catch(() => {}); // full analysis on every visit
-  } else if (await getKnownSiteCheck()) {
+  if (await getKnownSiteCheck()) {
     passiveColor(tabId, domain).catch(() => {}); // cache-only color (no analysis)
   } else {
     applyIcon(tabId, null);
@@ -323,11 +335,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
-// Open the side panel when the toolbar icon is clicked (do not auto-open).
-if (chrome.sidePanel?.setPanelBehavior) {
+// Toolbar click opens the side panel for the active tab. Handling the click
+// ourselves (rather than openPanelOnActionClick) ensures it counts as a user
+// invocation, which grants the activeTab access we use to read that tab's page
+// content for a full analysis.
+chrome.action.onClicked.addListener((tab) => {
+  if (typeof tab?.id !== "number") return;
   chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((err) => console.warn("[Sytelens] sidePanel setup failed:", err));
-}
+    .open({ tabId: tab.id })
+    .catch((err) => console.warn("[Sytelens] sidePanel open failed:", err));
+});
 
 console.log("[Sytelens] service worker started", configured() ? "(configured)" : "(NOT configured)");

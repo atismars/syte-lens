@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "description": "See through any website. AI-powered trust analysis for Chrome. By ATIS MARS.",
   "minimum_chrome_version": "114",
-  "permissions": ["tabs", "storage", "sidePanel"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": ["tabs", "storage", "sidePanel", "activeTab", "scripting"],
   "homepage_url": "https://sytelens.com",
   "background": {
     "service_worker": "background.js",
@@ -32,12 +31,5 @@
     "32": "icons/grey-32.png",
     "48": "icons/grey-48.png",
     "128": "icons/grey-128.png"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ]
+  }
 }

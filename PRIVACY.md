@@ -9,23 +9,22 @@ so you can verify exactly what runs in your browser.
 
 ## When analysis happens
 
-- **Full analysis (click):** a complete AI analysis runs when **you open the side
-  panel** by clicking the toolbar icon. It analyzes only the tab you're looking at.
+- **Full analysis (click only):** a complete AI analysis runs **only when you
+  click the toolbar icon** to open the side panel. Page content is read from the
+  active tab solely at that moment (via the `activeTab` permission), and only for
+  the tab you're looking at. Nothing is read from pages you don't explicitly check.
 - **Known-site coloring (on by default):** to color the toolbar icon for sites
   that have already been rated, Sytelens does a lightweight, anonymous
   **domain-only lookup** against the shared ratings cache on each visit — **no
   page content is sent and no new analysis runs** (it's a cache read). If the
   site isn't already rated, the icon stays neutral. Toggle it off in Settings
   ("Show ratings for already-rated sites").
-- **Optional auto-scan (off by default):** "Auto-scan sites as I browse" runs a
-  full analysis of every site you visit so the icon pre-colors. Opt-in, clearly
-  labeled.
 
 ## What we send
 
 On each visit (for known-site coloring), we send **only the root domain** to look
-it up in the ratings cache — nothing else. When a **full analysis** runs (you
-click, or auto-scan is on), we additionally send:
+it up in the ratings cache — nothing else. When a **full analysis** runs (only
+when you click the icon), we additionally send:
 
 - The site's **root domain** (e.g. `example.com`).
 - For the page you're actively checking: its **title**, **meta description**, and
