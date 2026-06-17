@@ -1,4 +1,4 @@
-# Sytelens — Claude Code Project Brief
+# Sytelens — Project Brief
 
 ## What We're Building
 A Chrome extension that analyzes website legitimacy using AI and displays a color-coded verdict
@@ -92,10 +92,6 @@ sytelens/
 │   │   └── prompt.js          # Anthropic prompt builder + caller
 │   ├── template.yaml          # AWS SAM template
 │   └── package.json
-│
-├── docs/
-│   ├── architecture.md
-│   └── prompt-design.md
 │
 └── README.md
 ```
