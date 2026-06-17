@@ -1,10 +1,18 @@
-# Syte.Lens
+<p align="center">
+  <img src="assets/logo.png" width="420" alt="Syte.Lens" />
+</p>
 
-**See through any website.** An AI-powered Chrome extension that rates a site's
-trustworthiness *and* its safety for kids — a color-coded verdict with detailed
-reasoning, right in the Chrome side panel.
+<p align="center">
+  <b>See through any website.</b> An AI-powered Chrome extension that rates a site's
+  trustworthiness <i>and</i> its safety for kids — a color-coded verdict with detailed
+  reasoning, right in the Chrome side panel.
+</p>
 
-By [ATIS MARS](https://atismars.co) · [sytelens.com](https://sytelens.com) · MIT licensed · open source.
+<p align="center">
+  <a href="https://atismars.co">ATIS MARS</a> ·
+  <a href="https://sytelens.com">sytelens.com</a> ·
+  MIT licensed · open source
+</p>
 
 ---
 
