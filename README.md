@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="assets/logo.png" width="420" alt="Syte.Lens" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png" />
+    <img src="assets/logo.png" width="420" alt="Syte.Lens" />
+  </picture>
 </p>
 
 <p align="center">
