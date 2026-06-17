@@ -52,6 +52,9 @@ extension/config.js
 .DS_Store
 **/.DS_Store
 
+# Internal docs — kept local, not published in the repo
+docs/
+
 # Chrome Web Store package
 extension/*.zip
 dist/
