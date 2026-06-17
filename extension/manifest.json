@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Syte.Lens",
+  "version": "0.1.0",
+  "description": "See through any website. AI-powered trust analysis for Chrome. By ATIS MARS.",
+  "minimum_chrome_version": "114",
+  "permissions": ["tabs", "storage", "sidePanel"],
+  "host_permissions": ["<all_urls>"],
+  "homepage_url": "https://sytelens.com",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "Syte.Lens",
+    "default_icon": {
+      "16": "icons/grey-16.png",
+      "32": "icons/grey-32.png",
+      "48": "icons/grey-48.png",
+      "128": "icons/grey-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/grey-16.png",
+    "32": "icons/grey-32.png",
+    "48": "icons/grey-48.png",
+    "128": "icons/grey-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

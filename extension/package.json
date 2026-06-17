@@ -1,0 +1,19 @@
+{
+  "name": "sytelens-extension",
+  "version": "0.1.0",
+  "description": "Sytelens Chrome extension — React side panel + MV3 service worker.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild sidepanel/index.jsx --bundle --format=esm --jsx=automatic --outfile=sidepanel/index.js --log-level=info",
+    "watch": "npm run build -- --watch --log-level=info"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
+}

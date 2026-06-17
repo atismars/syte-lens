@@ -41,6 +41,25 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Sytelens side panel build artifact (run `npm run build` in extension/)
+extension/sidepanel/index.js
+
+# Sytelens local config — real endpoint + API key (never commit; see config.example.js)
+extension/config.js
+
+# Local tooling / OS
+.claude/
+.DS_Store
+**/.DS_Store
+
+# Chrome Web Store package
+extension/*.zip
+dist/
+
+# AWS SAM build output and deploy config (samconfig.toml holds your API keys)
+backend/.aws-sam/
+backend/samconfig.toml
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 

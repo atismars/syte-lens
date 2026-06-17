@@ -1,0 +1,19 @@
+{
+  "name": "sytelens-backend",
+  "version": "0.1.0",
+  "description": "Sytelens Lambda backend — DynamoDB cache + Anthropic analysis.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "lambda/handler.js",
+  "scripts": {
+    "check": "node --check lambda/handler.js && node --check lambda/cache.js && node --check lambda/signals.js && node --check lambda/prompt.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1068.0",
+    "@aws-sdk/lib-dynamodb": "^3.1068.0"
+  }
+}

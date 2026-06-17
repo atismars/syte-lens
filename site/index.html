@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Syte.Lens — See through any website</title>
+<meta name="description" content="AI-powered website trust and kids-safety ratings for Chrome. A color-coded verdict with detailed reasoning, right in your browser. By ATIS MARS." />
+<meta property="og:title" content="Syte.Lens — See through any website" />
+<meta property="og:description" content="AI website trust + kids-safety ratings for Chrome. Open source, privacy-first." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#fff; --soft:#DFE9F8; --text:#05162C; --subtle:#3E5168; --muted:#6B7C93;
+    --border:rgba(5,22,44,.10); --blue:#0050FF; --navy:#111A2E;
+    --green:#16A34A; --amber:#D97706; --red:#DC2626;
+    --head:'Space Grotesk',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--body);color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  h1,h2,h3{font-family:var(--head);line-height:1.15;letter-spacing:-.01em}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+  nav .wrap{display:flex;align-items:center;gap:14px;height:62px}
+  .logo{font-family:var(--head);font-weight:700;font-size:17px;letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+  .logo b{color:var(--text)} .logo .l{color:var(--blue)}
+  .grow{flex:1}
+  .nav-link{color:var(--subtle);font-weight:500;font-size:14px}
+  .btn{font-family:var(--body);font-weight:600;font-size:14px;padding:9px 18px;border-radius:10px;display:inline-block;cursor:pointer;border:1px solid transparent}
+  .btn-primary{background:var(--blue);color:#fff} .btn-primary:hover{text-decoration:none;background:#0042d6}
+  .btn-ghost{border-color:var(--border);color:var(--text)} .btn-ghost:hover{text-decoration:none;background:var(--soft)}
+
+  /* hero */
+  .hero{background:linear-gradient(180deg,var(--soft),#fff);padding:84px 0 72px}
+  .hero .wrap{text-align:center}
+  .eyebrow{font-family:var(--head);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin-bottom:18px}
+  .hero h1{font-size:54px;font-weight:700;margin-bottom:20px}
+  .hero h1 .l{color:var(--blue)}
+  .hero p{font-size:19px;color:var(--subtle);max-width:640px;margin:0 auto 30px}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .by{margin-top:22px;font-size:13px;color:var(--muted)}
+
+  /* sections */
+  section{padding:72px 0}
+  .section-head{text-align:center;max-width:680px;margin:0 auto 48px}
+  .section-head h2{font-size:34px;font-weight:700;margin-bottom:12px}
+  .section-head p{color:var(--subtle);font-size:17px}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:26px;box-shadow:0 6px 20px rgba(5,22,44,.05)}
+  .card .ic{width:42px;height:42px;border-radius:11px;background:#0050FF14;display:flex;align-items:center;justify-content:center;color:var(--blue);margin-bottom:16px}
+  .card h3{font-size:18px;font-weight:600;margin-bottom:8px}
+  .card p{color:var(--subtle);font-size:14.5px}
+
+  /* kids band */
+  .kids{background:var(--navy);color:#fff}
+  .kids .wrap{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .kids h2{font-size:34px;font-weight:700;margin-bottom:14px;color:#fff}
+  .kids p{color:#A9B6CC;font-size:16px;margin-bottom:18px}
+  .kids ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .kids li{display:flex;gap:10px;align-items:flex-start;color:#D6DEEC;font-size:15px}
+  .kids li svg{color:#7FB0FF;flex-shrink:0;margin-top:3px}
+  .age-card{background:#fff;border-radius:20px;padding:28px;color:var(--text);box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  .age-row{display:flex;align-items:center;gap:18px;margin-bottom:18px}
+  .age-badge{width:84px;height:84px;border-radius:18px;background:#D9770618;border:2px solid #D9770655;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .age-badge .n{font-family:var(--head);font-weight:700;font-size:30px;color:var(--amber)}
+  .age-badge .s{font-size:8px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+  .lights{display:flex;gap:6px;margin-bottom:6px}
+  .lt{width:13px;height:13px;border-radius:50%;background:#cbd5e1}
+  .lt.g{background:var(--green)} .lt.a{background:var(--amber)}
+  .age-row h3{font-size:18px;color:var(--amber)}
+  .matrix{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:16px}
+  .mrow{display:flex;justify-content:space-between;align-items:center;font-size:14px}
+  .pill{font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px}
+  .pill.bad{color:var(--red);background:#DC262615} .pill.mid{color:var(--amber);background:#D9770615} .pill.ok{color:var(--green);background:#16A34A15}
+
+  /* steps */
+  .steps{background:var(--soft)}
+  .steps .grid{grid-template-columns:repeat(3,1fr)}
+  .step{text-align:center}
+  .step .num{font-family:var(--head);font-weight:700;font-size:14px;color:#fff;background:var(--blue);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .step h3{font-size:17px;margin-bottom:6px}
+  .step p{color:var(--subtle);font-size:14.5px}
+
+  /* privacy */
+  .privacy .wrap{background:#fff;border:1px solid var(--border);border-left:4px solid var(--green);border-radius:16px;padding:30px 32px;max-width:820px}
+  .privacy h2{font-size:24px;margin-bottom:10px}
+  .privacy p{color:var(--subtle)}
+
+  /* final cta */
+  .final{text-align:center}
+  .final h2{font-size:34px;margin-bottom:16px}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--muted);font-size:13px}
+  footer .wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  footer .grow{flex:1}
+
+  @media(max-width:760px){
+    .grid,.kids .wrap{grid-template-columns:1fr}
+    .hero h1{font-size:38px} .nav-link{display:none}
+  }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <span class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2 L4 5 V11 C4 16 7.5 20.6 12 22 C16.5 20.6 20 16 20 11 V5 Z" fill="#0050FF14" stroke="#0050FF" stroke-width="1.6" stroke-linejoin="round"/><circle cx="10.6" cy="10.4" r="3.1" fill="none" stroke="#0050FF" stroke-width="1.5"/><line x1="12.9" y1="12.7" x2="15.4" y2="15.2" stroke="#0050FF" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <span><b>SYTE</b><span class="l">.LENS</span></span>
+  </span>
+  <span class="grow"></span>
+  <a class="nav-link" href="#features">Features</a>
+  <a class="nav-link" href="#kids">For parents</a>
+  <a class="nav-link" href="https://github.com/atismars/syte-lens">GitHub</a>
+  <a class="btn btn-primary" href="#install">Add to Chrome</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">AI website trust · by ATIS MARS</div>
+  <h1>See through<br>any <span class="l">website</span>.</h1>
+  <p>Syte.Lens reads any site with AI and gives you a clear, color-coded verdict — is it trustworthy, and is it safe for kids? Right in your browser's side panel.</p>
+  <div class="cta">
+    <a class="btn btn-primary" href="#install">Add to Chrome — Free</a>
+    <a class="btn btn-ghost" href="https://github.com/atismars/syte-lens">View source</a>
+  </div>
+  <div class="by">Open source · privacy-first · no accounts</div>
+</div></header>
+
+<section id="features"><div class="wrap">
+  <div class="section-head">
+    <h2>One click. The full picture.</h2>
+    <p>Every site gets a trust score with the reasoning behind it — not a black box.</p>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <h3>Explainable trust score</h3>
+      <p>SAFE / CAUTION / HIGH RISK with a 0–100 score and a real breakdown — reputation, domain signals, and content transparency.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+      <h3>Scam & phishing defense</h3>
+      <p>Google Safe Browsing, typosquat / brand-impersonation detection, and dark patterns — fake scarcity, countdown timers, pushy pop-ups.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg></div>
+      <h3>Real domain signals</h3>
+      <p>Domain age and registrar, HTTPS, and the ad-tracking parameters following you — with a data-confidence rating so you know how sure we are.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="kids" class="kids"><div class="wrap">
+  <div>
+    <h2>Built for parents.</h2>
+    <p>Syte.Lens doesn't just ask "is this a scam?" — it asks "is this okay for my child?"</p>
+    <ul>
+      <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Age ratings</b> — All Ages through 18+, with content flags for sexual content, violence, profanity, drugs, gambling, and scary content.</span></li>
+      <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Stranger-contact risk</b> — flags chat, DMs, livestreams, and unmoderated comments where adults can reach kids.</span></li>
+      <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Money traps</b> — loot boxes, "free Robux" scams, and in-app-purchase pressure aimed at children.</span></li>
+      <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Child-privacy (COPPA)</b> — whether the site collects data from minors.</span></li>
+    </ul>
+  </div>
+  <div class="age-card">
+    <div class="age-row">
+      <div class="age-badge"><div class="n">13+</div><div class="s">Ages</div></div>
+      <div>
+        <div class="lights"><span class="lt g"></span><span class="lt a"></span><span class="lt"></span></div>
+        <h3>Caution for kids</h3>
+        <div style="font-size:13px;color:var(--subtle)">Popular game platform — open chat and in-game purchases.</div>
+      </div>
+    </div>
+    <div class="matrix">
+      <div class="mrow"><span>Stranger contact</span><span class="pill bad">Risk</span></div>
+      <div class="mrow"><span>In-app monetization</span><span class="pill bad">Risk</span></div>
+      <div class="mrow"><span>Child privacy (COPPA)</span><span class="pill mid">Caution</span></div>
+      <div class="mrow"><span>Sexual content</span><span class="pill ok">None</span></div>
+      <div class="mrow"><span>Violence</span><span class="pill mid">Mild</span></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="steps"><div class="wrap">
+  <div class="section-head"><h2>How it works</h2></div>
+  <div class="grid">
+    <div class="step"><div class="num">1</div><h3>Visit any site</h3><p>The toolbar icon turns green, amber, or red for sites we've already rated.</p></div>
+    <div class="step"><div class="num">2</div><h3>Click the icon</h3><p>The side panel opens and analyzes the page with AI — only when you ask.</p></div>
+    <div class="step"><div class="num">3</div><h3>Get the verdict</h3><p>A clear score, kids-safety rating, and the reasons behind it — in seconds.</p></div>
+  </div>
+</div></section>
+
+<section class="privacy"><div class="wrap">
+  <h2>🔒 Privacy by design</h2>
+  <p>A full analysis runs <b>only when you click</b> — we never build a profile of your browsing, we have no accounts, and we never sell your data. Icon coloring uses an anonymous domain-only lookup. The whole client is <a href="https://github.com/atismars/syte-lens">open source</a> — read every line. <a href="https://github.com/atismars/syte-lens/blob/main/PRIVACY.md">Full privacy policy →</a></p>
+</div></section>
+
+<section id="install" class="final"><div class="wrap">
+  <h2>Browse with confidence.</h2>
+  <p style="color:var(--subtle);margin-bottom:26px">Free, open source, and built by ATIS MARS.</p>
+  <div class="cta">
+    <a class="btn btn-primary" href="#">Add to Chrome</a>
+    <a class="btn btn-ghost" href="https://github.com/atismars/syte-lens">Star on GitHub</a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span class="logo" style="font-size:15px"><b>SYTE</b><span class="l">.LENS</span></span>
+  <span class="grow"></span>
+  <a href="https://github.com/atismars/syte-lens">GitHub</a>
+  <a href="https://github.com/atismars/syte-lens/blob/main/PRIVACY.md">Privacy</a>
+  <a href="https://atismars.co">ATIS MARS</a>
+  <span>© 2026 ATIS MARS</span>
+</div></footer>
+
+</body>
+</html>

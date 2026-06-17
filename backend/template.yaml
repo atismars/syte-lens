@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sytelens backend — Lambda (domain trust analysis) + DynamoDB verdict cache
+  + API Gateway (HTTPS, API-key auth).
+
+Parameters:
+  AnthropicApiKey:
+    Type: String
+    NoEcho: true
+    Description: Anthropic API key (used by the Lambda; never stored in the template).
+  WhoisApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: apilayer.com WHOIS API key (optional — WHOIS is skipped if blank).
+  GoogleSafeBrowsingApiKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Google Safe Browsing API key (optional — phishing/malware check skipped if blank).
+  MonthlyBudgetUSD:
+    Type: Number
+    Default: 20
+    Description: Monthly cost cap for the account; an alert fires at 80% and 100%.
+  AlertEmail:
+    Type: String
+    Default: ""
+    Description: Email for budget alerts (leave blank to skip creating the budget).
+
+Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
+
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Timeout: 30
+    MemorySize: 256
+
+Resources:
+  # --- DynamoDB verdict cache (PK: domain, 30-day TTL on `ttl`) ---
+  CacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: sytelens-cache
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: domain
+          AttributeType: S
+      KeySchema:
+        - AttributeName: domain
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # --- REST API with API-key auth + CORS preflight ---
+  SytelensApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      # Stage-wide throttling — caps sustained + burst request rate so no single
+      # caller (key is extractable in a public client) can flood the backend.
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingRateLimit: 10
+          ThrottlingBurstLimit: 20
+      Auth:
+        ApiKeyRequired: true
+        UsagePlan:
+          CreateUsagePlan: PER_API
+          Description: Sytelens default usage plan
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'Content-Type,x-api-key'"
+        AllowMethods: "'POST,OPTIONS'"
+
+  # --- Analysis Lambda ---
+  AnalyzeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: lambda/handler.handler
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref CacheTable
+          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
+          WHOIS_API_KEY: !Ref WhoisApiKey
+          GOOGLE_SAFE_BROWSING_API_KEY: !Ref GoogleSafeBrowsingApiKey
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CacheTable
+      Events:
+        Analyze:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SytelensApi
+            Path: /analyze
+            Method: post
+
+  # Account cost cap — alerts at 80% (forecast) and 100% (actual) of the monthly
+  # limit. The dedicated Sytelens account runs only this app, so account spend
+  # == app spend. Created only when AlertEmail is provided.
+  CostBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasAlertEmail
+    Properties:
+      Budget:
+        BudgetName: sytelens-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetUSD
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+
+Outputs:
+  ApiEndpoint:
+    Description: POST endpoint for the extension (send x-api-key header).
+    Value: !Sub "https://${SytelensApi}.execute-api.${AWS::Region}.amazonaws.com/prod/analyze"
+  ApiKeyId:
+    Description: API key ID — fetch the secret value with the command in the README.
+    Value: !Ref SytelensApiApiKey
+  TableName:
+    Description: DynamoDB cache table name.
+    Value: !Ref CacheTable
